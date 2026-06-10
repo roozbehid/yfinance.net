@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <PackageId>YFinance.Net</PackageId>
     <Title>YFinance.Net</Title>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Authors>Roozbeh GH</Authors>
     <Company>Roozbeh GH</Company>
     <Description>.NET library for Yahoo Finance market data, fundamentals, screeners, search, and live price streaming.</Description>
