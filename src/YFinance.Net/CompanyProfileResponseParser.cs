@@ -213,11 +213,11 @@ internal static class CompanyProfileResponseParser
             quoteType.QuoteType,
             price.ExchangeName ?? price.Exchange,
             price.Currency,
-            price.MarketCap ?? summary.MarketCap,
+            price.MarketCap ?? summary.MarketCap ?? summary.TotalAssets ?? stats.TotalAssets,
             stats.EnterpriseValue,
             summary.TrailingPe,
             summary.ForwardPe ?? stats.ForwardPe,
-            summary.DividendYield,
+            summary.DividendYield ?? summary.Yield ?? stats.Yield,
             summary.Beta ?? stats.Beta,
             financial.CurrentPrice ?? price.RegularMarketPrice,
             financial.EarningsGrowth,
@@ -320,12 +320,16 @@ internal static class CompanyProfileResponseParser
             var isForwardPe = reader.ValueTextEquals("forwardPE"u8);
             var isDividendYield = reader.ValueTextEquals("dividendYield"u8);
             var isBeta = reader.ValueTextEquals("beta"u8);
+            var isTotalAssets = reader.ValueTextEquals("totalAssets"u8);
+            var isYield = reader.ValueTextEquals("yield"u8);
             if (!reader.Read()) break;
             if (isMarketCap) result.MarketCap = ReadNullableDecimal(ref reader);
             else if (isTrailingPe) result.TrailingPe = ReadNullableDecimal(ref reader);
             else if (isForwardPe) result.ForwardPe = ReadNullableDecimal(ref reader);
             else if (isDividendYield) result.DividendYield = ReadNullableDecimal(ref reader);
             else if (isBeta) result.Beta = ReadNullableDecimal(ref reader);
+            else if (isTotalAssets) result.TotalAssets = ReadNullableDecimal(ref reader);
+            else if (isYield) result.Yield = ReadNullableDecimal(ref reader);
             else if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray) reader.Skip();
         }
 
@@ -421,10 +425,14 @@ internal static class CompanyProfileResponseParser
             var isEnterpriseValue = reader.ValueTextEquals("enterpriseValue"u8);
             var isForwardPe = reader.ValueTextEquals("forwardPE"u8);
             var isBeta = reader.ValueTextEquals("beta"u8);
+            var isTotalAssets = reader.ValueTextEquals("totalAssets"u8);
+            var isYield = reader.ValueTextEquals("yield"u8);
             if (!reader.Read()) break;
             if (isEnterpriseValue) result.EnterpriseValue = ReadNullableDecimal(ref reader);
             else if (isForwardPe) result.ForwardPe = ReadNullableDecimal(ref reader);
             else if (isBeta) result.Beta = ReadNullableDecimal(ref reader);
+            else if (isTotalAssets) result.TotalAssets = ReadNullableDecimal(ref reader);
+            else if (isYield) result.Yield = ReadNullableDecimal(ref reader);
             else if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray) reader.Skip();
         }
 
@@ -636,6 +644,8 @@ internal static class CompanyProfileResponseParser
         public decimal? ForwardPe;
         public decimal? DividendYield;
         public decimal? Beta;
+        public decimal? TotalAssets;
+        public decimal? Yield;
     }
 
     private struct AssetProfileFields
@@ -675,5 +685,7 @@ internal static class CompanyProfileResponseParser
         public decimal? EnterpriseValue;
         public decimal? ForwardPe;
         public decimal? Beta;
+        public decimal? TotalAssets;
+        public decimal? Yield;
     }
 }
