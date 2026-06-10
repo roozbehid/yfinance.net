@@ -23,6 +23,9 @@ env:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -65,15 +68,14 @@ jobs:
             artifacts/*.nupkg
             artifacts/*.snupkg
 
+      - name: NuGet login (OIDC -> temp API key)
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ github.repository_owner }}
+
       - name: Publish packages to NuGet
         shell: bash
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
-          if [ -z "$NUGET_API_KEY" ]; then
-            echo "The NUGET_API_KEY secret is not configured."
-            exit 1
-          fi
-
-          dotnet nuget push artifacts/*.nupkg --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
-          dotnet nuget push artifacts/*.snupkg --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          dotnet nuget push artifacts/*.nupkg --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          dotnet nuget push artifacts/*.snupkg --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
