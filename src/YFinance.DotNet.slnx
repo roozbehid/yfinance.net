@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="YFinance.Net.Benchmarks/YFinance.Net.Benchmarks.csproj" />
+  <Project Path="YFinance.Net.Tests/YFinance.Net.Tests.csproj" />
+  <Project Path="YFinance.Net/YFinance.Net.csproj" />
+</Solution>

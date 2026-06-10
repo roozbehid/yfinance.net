@@ -1,0 +1,30 @@
+.vs/
+.vscode/
+.idea/
+
+# Build outputs
+bin/
+obj/
+artifacts/
+TestResults/
+BenchmarkDotNet.Artifacts/
+
+# .NET user-specific files
+*.user
+*.rsuser
+*.suo
+
+# Coverage and diagnostics
+*.coverage
+*.coveragexml
+coverage/
+
+# Logs
+*.log
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Local reference material
+_tmp/

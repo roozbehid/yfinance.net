@@ -1,0 +1,124 @@
+name: Live Yahoo Health Check
+
+on:
+  schedule:
+    - cron: "0 6 */2 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: live-yahoo-health-check
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SOLUTION_PATH: src/YFinance.DotNet.slnx
+  TEST_RESULTS_DIR: artifacts/TestResults
+
+jobs:
+  live-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: src/global.json
+
+      - name: Run live Yahoo test suite
+        id: live_tests
+        continue-on-error: true
+        run: dotnet test ${{ env.SOLUTION_PATH }} -c Release --filter "Category=LiveYahoo" --logger "trx;LogFileName=live-yahoo.trx" --results-directory ${{ env.TEST_RESULTS_DIR }}
+
+      - name: Upload live test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-yahoo-test-results
+          path: ${{ env.TEST_RESULTS_DIR }}
+          if-no-files-found: warn
+
+      - name: Build issue body
+        if: steps.live_tests.outcome == 'failure' && github.event_name == 'schedule'
+        shell: pwsh
+        run: |
+          $trxFile = Get-ChildItem -Path $env:TEST_RESULTS_DIR -Filter *.trx -Recurse |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+
+          if (-not $trxFile) {
+            throw "No TRX file was produced by the live Yahoo test run."
+          }
+
+          [xml]$trx = Get-Content -Path $trxFile.FullName
+          $failedResults = @($trx.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq 'Failed' })
+
+          $summaryLines = if ($failedResults.Count -eq 0) {
+            @("The workflow reported a failure, but no failed test cases were found in the TRX results.")
+          }
+          else {
+            foreach ($result in $failedResults | Select-Object -First 10) {
+              $message = $result.Output.ErrorInfo.Message
+              if ([string]::IsNullOrWhiteSpace($message)) {
+                $message = $result.Output.ErrorInfo.StackTrace
+              }
+
+              if ([string]::IsNullOrWhiteSpace($message)) {
+                $message = "No error message was captured."
+              }
+
+              $singleLineMessage = ($message -replace "\r?\n", " ").Trim()
+              "- $($result.testName): $singleLineMessage"
+            }
+          }
+
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+          $bodyLines = @(
+            "## Summary",
+            "",
+            "The scheduled live Yahoo regression check failed.",
+            "",
+            "- Workflow: $env:GITHUB_WORKFLOW",
+            "- Run: $runUrl",
+            "- Commit: $env:GITHUB_SHA",
+            "- Ref: $env:GITHUB_REF_NAME",
+            "- Triggered at (UTC): $(Get-Date -AsUTC -Format o)",
+            "- Failed tests reported: $($failedResults.Count)",
+            "",
+            "## Failed tests",
+            ""
+          )
+
+          $bodyLines += $summaryLines
+          $bodyLines += @(
+            "",
+            "## Suggested next steps",
+            "",
+            "1. Review the workflow logs and uploaded TRX artifact.",
+            "2. Check whether Yahoo changed a response contract, authentication behavior, or websocket message shape.",
+            "3. Patch the affected client/parser/test and rerun the live workflow."
+          )
+
+          Set-Content -Path live-yahoo-issue.md -Value $bodyLines
+
+      - name: Create GitHub issue
+        if: steps.live_tests.outcome == 'failure' && github.event_name == 'schedule'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $title = "Scheduled live Yahoo check failed - $(Get-Date -AsUTC -Format 'yyyy-MM-dd')"
+          gh issue create --title $title --body-file live-yahoo-issue.md
+
+      - name: Fail workflow when live tests fail
+        if: steps.live_tests.outcome == 'failure'
+        shell: bash
+        run: exit 1

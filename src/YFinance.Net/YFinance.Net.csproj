@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>YFinance.Net</PackageId>
+    <Title>YFinance.Net</Title>
+    <Version>0.1.0</Version>
+    <Authors>Roozbeh GH</Authors>
+    <Company>Roozbeh GH</Company>
+    <Description>.NET library for Yahoo Finance market data, fundamentals, screeners, search, and live price streaming.</Description>
+    <PackageTags>yahoo-finance;finance;stocks;market-data;dotnet</PackageTags>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/roozbehid/yfinance.net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/roozbehid/yfinance.net</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.29.3" />
+    <PackageReference Include="Grpc.Tools" Version="2.71.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" Link="README.md" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" Link="LICENSE" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Protobuf Include="Protos\pricing.proto" GrpcServices="None" ProtoRoot="Protos" />
+  </ItemGroup>
+
+</Project>

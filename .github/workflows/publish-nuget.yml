@@ -1,0 +1,79 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Package version override (SemVer without the leading v)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  PROJECT_PATH: src/YFinance.Net/YFinance.Net.csproj
+  SOLUTION_PATH: src/YFinance.DotNet.slnx
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: src/global.json
+
+      - name: Resolve package version
+        id: version
+        shell: bash
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            version="${{ github.event.inputs.version }}"
+          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            echo "Package version is required for manual runs."
+            exit 1
+          fi
+
+          echo "package_version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore solution
+        run: dotnet restore ${{ env.SOLUTION_PATH }}
+
+      - name: Run non-live test suite
+        run: dotnet test ${{ env.SOLUTION_PATH }} -c Release --no-restore --filter "Category!=LiveYahoo"
+
+      - name: Pack NuGet package
+        run: dotnet pack ${{ env.PROJECT_PATH }} -c Release --no-restore -p:ContinuousIntegrationBuild=true -p:Version=${{ steps.version.outputs.package_version }} -o ./artifacts
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package-${{ steps.version.outputs.package_version }}
+          path: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+
+      - name: Publish packages to NuGet
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "The NUGET_API_KEY secret is not configured."
+            exit 1
+          fi
+
+          dotnet nuget push artifacts/*.nupkg --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
+          dotnet nuget push artifacts/*.snupkg --api-key "$NUGET_API_KEY" --source "https://api.nuget.org/v3/index.json" --skip-duplicate
