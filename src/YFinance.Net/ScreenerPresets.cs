@@ -1,7 +1,13 @@
 namespace YFinance.Net;
 
+/// <summary>
+/// Prebuilt custom screener definitions for common investing scenarios.
+/// </summary>
 public static class ScreenerPresets
 {
+    /// <summary>
+    /// Builds a custom screener for high-volume equity gainers in a region.
+    /// </summary>
     public static ScreenerDefinition DayGainers(
         string region = "us",
         decimal minimumPercentChange = 3m,
@@ -23,6 +29,9 @@ public static class ScreenerPresets
         };
     }
 
+    /// <summary>
+    /// Builds a custom screener for high-volume equity losers in a region.
+    /// </summary>
     public static ScreenerDefinition DayLosers(
         string region = "us",
         decimal maximumPercentChange = -2.5m,
@@ -44,6 +53,9 @@ public static class ScreenerPresets
         };
     }
 
+    /// <summary>
+    /// Builds a custom screener for the most active large-cap equities in a region.
+    /// </summary>
     public static ScreenerDefinition MostActives(
         string region = "us",
         decimal minimumMarketCap = 2_000_000_000m,
@@ -61,6 +73,9 @@ public static class ScreenerPresets
         };
     }
 
+    /// <summary>
+    /// Builds a custom screener for high-yield bond mutual funds.
+    /// </summary>
     public static ScreenerDefinition HighYieldBond(
         decimal maximumInitialInvestment = 100_001m,
         int maximumOneYearCategoryRank = 50)
@@ -78,6 +93,9 @@ public static class ScreenerPresets
         };
     }
 
+    /// <summary>
+    /// Builds a custom screener for top mutual funds using simple price and rating thresholds.
+    /// </summary>
     public static ScreenerDefinition TopMutualFunds(
         decimal minimumPrice = 15m,
         decimal minimumInitialInvestment = 1_000m)
@@ -93,6 +111,9 @@ public static class ScreenerPresets
         };
     }
 
+    /// <summary>
+    /// Builds a custom screener for top ETFs in a region.
+    /// </summary>
     public static ScreenerDefinition TopEtfsUs(
         string region = "us",
         decimal minimumPrice = 10m)
@@ -109,6 +130,9 @@ public static class ScreenerPresets
         };
     }
 
+    /// <summary>
+    /// Builds a custom screener for top-performing ETFs in a region.
+    /// </summary>
     public static ScreenerDefinition TopPerformingEtfs(
         string region = "us",
         decimal minimumPrice = 10m)
@@ -125,6 +149,9 @@ public static class ScreenerPresets
         };
     }
 
+    /// <summary>
+    /// Builds a custom screener for technology ETFs in a region.
+    /// </summary>
     public static ScreenerDefinition TechnologyEtfs(string region = "us")
     {
         var normalizedRegion = NormalizeRegionFilter(region);

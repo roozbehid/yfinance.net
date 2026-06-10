@@ -1,11 +1,24 @@
 namespace YFinance.Net;
 
+/// <summary>
+/// Cash flow statement returned by Yahoo Finance.
+/// </summary>
+/// <param name="Symbol">Ticker symbol.</param>
+/// <param name="Frequency">Requested statement frequency.</param>
+/// <param name="Periods">Reporting periods in the statement.</param>
+/// <param name="LineItems">Statement line items aligned with <see cref="Periods"/>.</param>
 public sealed record CashFlow(
     string Symbol,
     FinancialStatementFrequency Frequency,
     FinancialStatementPeriod[] Periods,
     CashFlowLineItem[] LineItems);
 
+/// <summary>
+/// Single cash flow statement line item.
+/// </summary>
+/// <param name="Key">Yahoo Finance field key.</param>
+/// <param name="CurrencyCode">Currency code when available.</param>
+/// <param name="Values">Values aligned with the statement periods.</param>
 public readonly record struct CashFlowLineItem(
     string Key,
     string? CurrencyCode,

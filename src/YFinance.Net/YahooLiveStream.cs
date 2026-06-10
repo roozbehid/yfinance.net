@@ -5,6 +5,9 @@ using System.Net.WebSockets;
 
 namespace YFinance.Net;
 
+/// <summary>
+/// Streams live Yahoo Finance price updates over the Yahoo websocket feed.
+/// </summary>
 public sealed class YahooLiveStream : IAsyncDisposable
 {
     private readonly IYahooWebSocketTransport _transport;
@@ -20,6 +23,10 @@ public sealed class YahooLiveStream : IAsyncDisposable
     private bool _started;
     private int _disposeSignaled;
 
+    /// <summary>
+    /// Initializes a live stream using the default Yahoo websocket transport.
+    /// </summary>
+    /// <param name="options">Optional stream configuration.</param>
     public YahooLiveStream(YahooLiveStreamOptions? options = null)
         : this(new ClientWebSocketTransport(), options)
     {
@@ -38,13 +45,25 @@ public sealed class YahooLiveStream : IAsyncDisposable
         });
     }
 
+    /// <summary>
+    /// Gets a channel reader for consuming live price updates.
+    /// </summary>
     public ChannelReader<LivePriceUpdate> Messages => _channel.Reader;
 
+    /// <summary>
+    /// Reads live price updates as an async stream.
+    /// </summary>
+    /// <param name="cancellationToken">Token used to stop enumeration.</param>
+    /// <returns>An async sequence of live price updates.</returns>
     public IAsyncEnumerable<LivePriceUpdate> ReadAllAsync(CancellationToken cancellationToken = default)
     {
         return _channel.Reader.ReadAllAsync(cancellationToken);
     }
 
+    /// <summary>
+    /// Establishes the websocket connection if it has not already been started.
+    /// </summary>
+    /// <param name="cancellationToken">Token used to cancel the connection attempt.</param>
     public async Task ConnectAsync(CancellationToken cancellationToken = default)
     {
         await _connectionLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -66,6 +85,11 @@ public sealed class YahooLiveStream : IAsyncDisposable
         }
     }
 
+    /// <summary>
+    /// Subscribes one or more symbols to the live stream.
+    /// </summary>
+    /// <param name="symbols">Symbols to subscribe.</param>
+    /// <param name="cancellationToken">Token used to cancel the subscription request.</param>
     public async Task SubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(symbols);
@@ -88,6 +112,11 @@ public sealed class YahooLiveStream : IAsyncDisposable
         await SendSubscriptionCommandAsync("subscribe", snapshot, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Unsubscribes one or more symbols from the live stream.
+    /// </summary>
+    /// <param name="symbols">Symbols to unsubscribe.</param>
+    /// <param name="cancellationToken">Token used to cancel the unsubscription request.</param>
     public async Task UnsubscribeAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(symbols);
@@ -109,6 +138,9 @@ public sealed class YahooLiveStream : IAsyncDisposable
         await SendSubscriptionCommandAsync("unsubscribe", snapshot, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Stops background loops, closes the websocket, and releases owned resources.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref _disposeSignaled, 1) != 0)
@@ -149,12 +181,12 @@ public sealed class YahooLiveStream : IAsyncDisposable
     private async Task ReceiveLoopAsync()
     {
         var receiveBuffer = ArrayPool<byte>.Shared.Rent(4096);
-        var messageBuffer = new ArrayBufferWriter<byte>(4096);
+        using var messageBuffer = new MemoryStream(4096);
         try
         {
             while (!_cts.IsCancellationRequested)
             {
-                messageBuffer.Clear();
+                messageBuffer.SetLength(0);
                 YahooWebSocketReceiveResult receiveResult;
 
                 do
@@ -168,25 +200,23 @@ public sealed class YahooLiveStream : IAsyncDisposable
                             return;
                         }
 
-                        messageBuffer.Clear();
+                        messageBuffer.SetLength(0);
                         continue;
                     }
 
                     if (receiveResult.Count > 0)
                     {
-                        var destination = messageBuffer.GetSpan(receiveResult.Count);
-                        receiveBuffer.AsSpan(0, receiveResult.Count).CopyTo(destination);
-                        messageBuffer.Advance(receiveResult.Count);
+                        messageBuffer.Write(receiveBuffer, 0, receiveResult.Count);
                     }
                 }
                 while (!receiveResult.EndOfMessage);
 
-                if (receiveResult.MessageType != WebSocketMessageType.Text || messageBuffer.WrittenCount == 0)
+                if (receiveResult.MessageType != WebSocketMessageType.Text || messageBuffer.Length == 0)
                 {
                     continue;
                 }
 
-                if (YahooLiveMessageDecoder.TryDecodeEnvelope(messageBuffer.WrittenSpan, out var update) && update is not null)
+                if (YahooLiveMessageDecoder.TryDecodeEnvelope(messageBuffer.GetBuffer().AsMemory(0, (int)messageBuffer.Length), out var update) && update is not null)
                 {
                     await _channel.Writer.WriteAsync(update, _cts.Token).ConfigureAwait(false);
                 }

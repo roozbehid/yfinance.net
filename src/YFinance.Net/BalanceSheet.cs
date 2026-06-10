@@ -1,11 +1,24 @@
 namespace YFinance.Net;
 
+/// <summary>
+/// Balance sheet returned by Yahoo Finance.
+/// </summary>
+/// <param name="Symbol">Ticker symbol.</param>
+/// <param name="Frequency">Requested statement frequency.</param>
+/// <param name="Periods">Reporting periods in the statement.</param>
+/// <param name="LineItems">Statement line items aligned with <see cref="Periods"/>.</param>
 public sealed record BalanceSheet(
     string Symbol,
     FinancialStatementFrequency Frequency,
     FinancialStatementPeriod[] Periods,
     BalanceSheetLineItem[] LineItems);
 
+/// <summary>
+/// Single balance sheet line item.
+/// </summary>
+/// <param name="Key">Yahoo Finance field key.</param>
+/// <param name="CurrencyCode">Currency code when available.</param>
+/// <param name="Values">Values aligned with the statement periods.</param>
 public readonly record struct BalanceSheetLineItem(
     string Key,
     string? CurrencyCode,

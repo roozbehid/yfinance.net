@@ -11,8 +11,7 @@ public sealed class YahooFinanceMarketLiveTests
         var summary = await market.GetSummaryAsync();
         var status = await market.GetStatusAsync();
 
-        Assert.NotEmpty(summary.Exchanges);
-        Assert.Contains(summary.Exchanges.Keys, exchange => string.Equals(exchange, "SNP", StringComparison.OrdinalIgnoreCase));
+        AssertValidMarketSummary(summary, MarketRegion.US);
         Assert.True(status.HasValue);
         Assert.Equal("us", status.Value.Id);
     }
@@ -37,8 +36,7 @@ public sealed class YahooFinanceMarketLiveTests
         var summary = await client.GetMarketSummaryAsync(MarketRegion.US);
         var status = await client.GetMarketStatusAsync(MarketRegion.US);
 
-        Assert.NotEmpty(summary.Exchanges);
-        Assert.Contains(summary.Exchanges.Keys, exchange => string.Equals(exchange, "SNP", StringComparison.OrdinalIgnoreCase));
+        AssertValidMarketSummary(summary, MarketRegion.US);
         Assert.True(status.HasValue);
         Assert.Equal("us", status.Value.Id);
     }
@@ -52,5 +50,18 @@ public sealed class YahooFinanceMarketLiveTests
         var status = await client.GetMarketStatusAsync(MarketRegion.EUROPE);
 
         Assert.Null(status);
+    }
+
+    private static void AssertValidMarketSummary(MarketSummaryResult summary, MarketRegion expectedRegion)
+    {
+        Assert.Equal(expectedRegion, summary.Region);
+        Assert.NotEmpty(summary.Exchanges);
+        Assert.Contains(summary.Exchanges, pair =>
+            !string.IsNullOrWhiteSpace(pair.Key) &&
+            string.Equals(pair.Key, pair.Value.Exchange, StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(summary.Exchanges.Values, entry =>
+            !string.IsNullOrWhiteSpace(entry.ShortName) ||
+            !string.IsNullOrWhiteSpace(entry.FullExchangeName) ||
+            !string.IsNullOrWhiteSpace(entry.Symbol));
     }
 }

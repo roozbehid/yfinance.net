@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PackageId>YFinance.Net</PackageId>
     <Title>YFinance.Net</Title>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Authors>Roozbeh GH</Authors>
     <Company>Roozbeh GH</Company>
     <Description>.NET library for Yahoo Finance market data, fundamentals, screeners, search, and live price streaming.</Description>
-    <PackageTags>yahoo-finance;finance;stocks;market-data;dotnet</PackageTags>
+    <PackageTags>yahoo-finance;finance;stocks;market-data;dotnet;yfinance</PackageTags>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

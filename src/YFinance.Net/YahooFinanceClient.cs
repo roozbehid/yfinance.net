@@ -7,6 +7,9 @@ using System.Text.Json;
 
 namespace YFinance.Net;
 
+/// <summary>
+/// Primary entry point for querying Yahoo Finance data from .NET.
+/// </summary>
 public sealed class YahooFinanceClient : IDisposable
 {
     private readonly HttpClient _httpClient;
@@ -15,6 +18,13 @@ public sealed class YahooFinanceClient : IDisposable
     private readonly SemaphoreSlim _crumbLock = new(1, 1);
     private string? _crumb;
 
+    /// <summary>
+    /// Initializes a new client instance.
+    /// </summary>
+    /// <param name="httpClient">
+    /// Optional <see cref="HttpClient"/> to reuse for requests. When omitted, the client creates and owns its own instance.
+    /// </param>
+    /// <param name="options">Optional client configuration such as headers, base URI, and cache settings.</param>
     public YahooFinanceClient(HttpClient? httpClient = null, YahooFinanceClientOptions? options = null)
     {
         _options = options ?? new YahooFinanceClientOptions();
@@ -24,6 +34,12 @@ public sealed class YahooFinanceClient : IDisposable
         ConfigureDefaultHeaders(_httpClient, _options);
     }
 
+    /// <summary>
+    /// Searches Yahoo Finance for matching quotes and related news.
+    /// </summary>
+    /// <param name="request">Search parameters such as the query text and result counts.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed Yahoo Finance search response.</returns>
     public async Task<SearchResult> SearchAsync(SearchRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -37,6 +53,12 @@ public sealed class YahooFinanceClient : IDisposable
         return SearchResponseParser.Parse(payload);
     }
 
+    /// <summary>
+    /// Queries Yahoo Finance lookup results for a text query.
+    /// </summary>
+    /// <param name="request">Lookup parameters including query, paging, and category selection.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed lookup response.</returns>
     public async Task<LookupResult> LookupAsync(LookupRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -52,21 +74,31 @@ public sealed class YahooFinanceClient : IDisposable
         return LookupResponseParser.Parse(payload);
     }
 
+    /// <inheritdoc cref="GetPredefinedScreenerAsync(string, PredefinedScreenerOptions?, CancellationToken)"/>
     public Task<ScreenerResult> GetPredefinedScreenerAsync(PredefinedScreenerId screenId, CancellationToken cancellationToken = default)
     {
         return GetPredefinedScreenerAsync(screenId, options: null, cancellationToken);
     }
 
+    /// <inheritdoc cref="GetPredefinedScreenerAsync(string, PredefinedScreenerOptions?, CancellationToken)"/>
     public Task<ScreenerResult> GetPredefinedScreenerAsync(PredefinedScreenerId screenId, PredefinedScreenerOptions? options, CancellationToken cancellationToken = default)
     {
         return GetPredefinedScreenerAsync(screenId.ToWireValue(), options, cancellationToken);
     }
 
+    /// <inheritdoc cref="GetPredefinedScreenerAsync(string, PredefinedScreenerOptions?, CancellationToken)"/>
     public Task<ScreenerResult> GetPredefinedScreenerAsync(string screenId, CancellationToken cancellationToken = default)
     {
         return GetPredefinedScreenerAsync(screenId, options: null, cancellationToken);
     }
 
+    /// <summary>
+    /// Gets the results of one of Yahoo Finance's predefined screeners.
+    /// </summary>
+    /// <param name="screenId">Yahoo's screener identifier, such as <c>day_gainers</c>.</param>
+    /// <param name="options">Optional paging and localization settings.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The screener result returned by Yahoo Finance.</returns>
     public async Task<ScreenerResult> GetPredefinedScreenerAsync(string screenId, PredefinedScreenerOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(screenId);
@@ -87,17 +119,26 @@ public sealed class YahooFinanceClient : IDisposable
         return PredefinedScreenerResponseParser.Parse(payload);
     }
 
+    /// <inheritdoc cref="ScreenAsync(ScreenerQuery, ScreenerOptions?, CancellationToken)"/>
     public Task<ScreenerResult> ScreenAsync(ScreenerQuery query, CancellationToken cancellationToken = default)
     {
         return ScreenAsync(query, options: null, cancellationToken);
     }
 
+    /// <inheritdoc cref="ScreenAsync(ScreenerQuery, ScreenerOptions?, CancellationToken)"/>
     public Task<ScreenerResult> ScreenAsync(ScreenerDefinition definition, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(definition);
         return ScreenAsync(definition.Query, definition.Options, cancellationToken);
     }
 
+    /// <summary>
+    /// Executes a custom Yahoo Finance screener query.
+    /// </summary>
+    /// <param name="query">The filter expression to execute.</param>
+    /// <param name="options">Optional paging, sorting, quote type, and localization settings.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The screener result returned by Yahoo Finance.</returns>
     public async Task<ScreenerResult> ScreenAsync(ScreenerQuery query, ScreenerOptions? options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);
@@ -122,6 +163,12 @@ public sealed class YahooFinanceClient : IDisposable
         return PredefinedScreenerResponseParser.Parse(payload);
     }
 
+    /// <summary>
+    /// Gets basic quote summary data for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>Basic market data and summary fields for the symbol.</returns>
     public async Task<QuoteSummary> GetQuoteSummaryAsync(string symbol, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -133,6 +180,12 @@ public sealed class YahooFinanceClient : IDisposable
         return QuoteSummaryResponseParser.Parse(payload);
     }
 
+    /// <summary>
+    /// Gets company profile and key statistics for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>Company profile data assembled from Yahoo Finance quote summary modules.</returns>
     public async Task<CompanyProfile> GetCompanyProfileAsync(string symbol, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -144,6 +197,12 @@ public sealed class YahooFinanceClient : IDisposable
         return CompanyProfileResponseParser.Parse(payload);
     }
 
+    /// <summary>
+    /// Gets major holder, fund holder, and institutional holder information for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed holder snapshot.</returns>
     public async Task<HoldersSnapshot> GetHoldersAsync(string symbol, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -156,6 +215,12 @@ public sealed class YahooFinanceClient : IDisposable
         return HoldersResponseParser.Parse(payload, symbol);
     }
 
+    /// <summary>
+    /// Gets insider transactions, insider holders, and net share purchase activity for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed insider snapshot.</returns>
     public async Task<InsiderSnapshot> GetInsiderDataAsync(string symbol, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -168,6 +233,12 @@ public sealed class YahooFinanceClient : IDisposable
         return InsiderDataResponseParser.Parse(payload, symbol);
     }
 
+    /// <summary>
+    /// Gets the valuation measures table from Yahoo Finance's key statistics page.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed valuation measures table.</returns>
     public async Task<ValuationMeasures> GetValuationMeasuresAsync(string symbol, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -182,6 +253,12 @@ public sealed class YahooFinanceClient : IDisposable
         return ValuationMeasuresResponseParser.Parse(payload);
     }
 
+    /// <summary>
+    /// Attempts to resolve an ISIN for a ticker symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The ISIN when one can be resolved; otherwise <see langword="null"/>.</returns>
     public async Task<string?> GetIsinAsync(string symbol, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -200,6 +277,12 @@ public sealed class YahooFinanceClient : IDisposable
         return IsinLookupResponseParser.ParseForSymbol(payload, symbol);
     }
 
+    /// <summary>
+    /// Searches Yahoo Finance by ISIN and returns the matched quote plus related news.
+    /// </summary>
+    /// <param name="isin">ISIN to search for.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The aggregated ISIN search result.</returns>
     public async Task<IsinSearchResult> GetByIsinAsync(string isin, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(isin);
@@ -219,21 +302,46 @@ public sealed class YahooFinanceClient : IDisposable
         return new IsinSearchResult(isin, ticker, result.News);
     }
 
+    /// <summary>
+    /// Gets the first ticker symbol matched for an ISIN.
+    /// </summary>
+    /// <param name="isin">ISIN to search for.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The matched ticker symbol, or <see langword="null"/> when none is found.</returns>
     public async Task<string?> GetTickerByIsinAsync(string isin, CancellationToken cancellationToken = default)
     {
         return (await GetByIsinAsync(isin, cancellationToken).ConfigureAwait(false)).Ticker?.Symbol;
     }
 
+    /// <summary>
+    /// Gets the first quote matched for an ISIN.
+    /// </summary>
+    /// <param name="isin">ISIN to search for.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The matched quote, or <see langword="null"/> when none is found.</returns>
     public async Task<SearchQuote?> GetInfoByIsinAsync(string isin, CancellationToken cancellationToken = default)
     {
         return (await GetByIsinAsync(isin, cancellationToken).ConfigureAwait(false)).Ticker;
     }
 
+    /// <summary>
+    /// Gets news items returned when searching by ISIN.
+    /// </summary>
+    /// <param name="isin">ISIN to search for.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The news items returned by the ISIN search.</returns>
     public async Task<SearchNewsItem[]> GetNewsByIsinAsync(string isin, CancellationToken cancellationToken = default)
     {
         return (await GetByIsinAsync(isin, cancellationToken).ConfigureAwait(false)).News;
     }
 
+    /// <summary>
+    /// Gets an income statement for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="frequency">Financial statement frequency to request.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed income statement.</returns>
     public async Task<IncomeStatement> GetIncomeStatementAsync(
         string symbol,
         FinancialStatementFrequency frequency = FinancialStatementFrequency.Annual,
@@ -250,11 +358,24 @@ public sealed class YahooFinanceClient : IDisposable
         return IncomeStatementResponseParser.Parse(payload, symbol, frequency);
     }
 
+    /// <summary>
+    /// Gets the trailing twelve month income statement for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed trailing income statement.</returns>
     public Task<IncomeStatement> GetTrailingIncomeStatementAsync(string symbol, CancellationToken cancellationToken = default)
     {
         return GetIncomeStatementAsync(symbol, FinancialStatementFrequency.Trailing, cancellationToken);
     }
 
+    /// <summary>
+    /// Gets a balance sheet for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="frequency">Financial statement frequency to request.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed balance sheet.</returns>
     public async Task<BalanceSheet> GetBalanceSheetAsync(
         string symbol,
         FinancialStatementFrequency frequency = FinancialStatementFrequency.Annual,
@@ -271,6 +392,13 @@ public sealed class YahooFinanceClient : IDisposable
         return BalanceSheetResponseParser.Parse(payload, symbol, frequency);
     }
 
+    /// <summary>
+    /// Gets a cash flow statement for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="frequency">Financial statement frequency to request.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed cash flow statement.</returns>
     public async Task<CashFlow> GetCashFlowAsync(
         string symbol,
         FinancialStatementFrequency frequency = FinancialStatementFrequency.Annual,
@@ -287,6 +415,14 @@ public sealed class YahooFinanceClient : IDisposable
         return CashFlowResponseParser.Parse(payload, symbol, frequency);
     }
 
+    /// <summary>
+    /// Gets ticker-specific news from Yahoo Finance.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="count">Maximum number of news items to request.</param>
+    /// <param name="tab">News tab to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed list of news items.</returns>
     public async Task<TickerNewsItem[]> GetNewsAsync(string symbol, int count = 10, TickerNewsTab tab = TickerNewsTab.News, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -301,9 +437,17 @@ public sealed class YahooFinanceClient : IDisposable
         return TickerNewsResponseParser.Parse(payload);
     }
 
+    /// <inheritdoc cref="GetOptionExpirationDatesAsync(string, YFinanceCacheMode, CancellationToken)"/>
     public async Task<DateOnly[]> GetOptionExpirationDatesAsync(string symbol, CancellationToken cancellationToken = default)
         => await GetOptionExpirationDatesAsync(symbol, YFinanceCacheMode.Default, cancellationToken).ConfigureAwait(false);
 
+    /// <summary>
+    /// Gets available option expiration dates for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cacheMode">Controls whether the option expiration cache is used or refreshed.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The available option expiration dates.</returns>
     public async Task<DateOnly[]> GetOptionExpirationDatesAsync(string symbol, YFinanceCacheMode cacheMode, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -325,9 +469,18 @@ public sealed class YahooFinanceClient : IDisposable
         return expirations;
     }
 
+    /// <inheritdoc cref="GetOptionChainAsync(string, DateOnly?, YFinanceCacheMode, CancellationToken)"/>
     public async Task<OptionChainResult> GetOptionChainAsync(string symbol, DateOnly? expirationDate = null, CancellationToken cancellationToken = default)
         => await GetOptionChainAsync(symbol, expirationDate, YFinanceCacheMode.Default, cancellationToken).ConfigureAwait(false);
 
+    /// <summary>
+    /// Gets the option chain for a symbol, optionally limited to a specific expiration date.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="expirationDate">Optional expiration date to request. When omitted, Yahoo's default option chain payload is returned.</param>
+    /// <param name="cacheMode">Controls whether the expiration cache is used when validating the requested expiration.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed option chain result.</returns>
     public async Task<OptionChainResult> GetOptionChainAsync(string symbol, DateOnly? expirationDate, YFinanceCacheMode cacheMode, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -371,6 +524,12 @@ public sealed class YahooFinanceClient : IDisposable
         }
     }
 
+    /// <summary>
+    /// Gets analyst trends, recommendation trends, and related insights for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed analyst insights payload.</returns>
     public async Task<AnalystInsights> GetAnalystInsightsAsync(string symbol, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -383,6 +542,12 @@ public sealed class YahooFinanceClient : IDisposable
         return AnalystInsightsResponseParser.Parse(payload);
     }
 
+    /// <summary>
+    /// Gets market summary data for a Yahoo Finance market region.
+    /// </summary>
+    /// <param name="region">Market region to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed market summary.</returns>
     public async Task<MarketSummaryResult> GetMarketSummaryAsync(MarketRegion region, CancellationToken cancellationToken = default)
     {
         var payload = await SendGetBytesAsync(
@@ -393,6 +558,12 @@ public sealed class YahooFinanceClient : IDisposable
         return MarketResponseParser.ParseSummary(payload, region);
     }
 
+    /// <summary>
+    /// Gets the current market status for a Yahoo Finance market region.
+    /// </summary>
+    /// <param name="region">Market region to query.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The current market status when Yahoo returns one; otherwise <see langword="null"/>.</returns>
     public async Task<MarketStatus?> GetMarketStatusAsync(MarketRegion region, CancellationToken cancellationToken = default)
     {
         var payload = await SendGetBytesAsync(
@@ -403,9 +574,18 @@ public sealed class YahooFinanceClient : IDisposable
         return MarketResponseParser.ParseStatus(payload, region);
     }
 
+    /// <inheritdoc cref="GetSectorAsync(string, string, YFinanceCacheMode, CancellationToken)"/>
     public async Task<SectorDetails> GetSectorAsync(string key, string region = "US", CancellationToken cancellationToken = default)
         => await GetSectorAsync(key, region, YFinanceCacheMode.Default, cancellationToken).ConfigureAwait(false);
 
+    /// <summary>
+    /// Gets sector details for a Yahoo Finance sector key.
+    /// </summary>
+    /// <param name="key">Sector key such as <c>technology</c>.</param>
+    /// <param name="region">Region code used by Yahoo Finance, such as <c>US</c>.</param>
+    /// <param name="cacheMode">Controls whether the domain cache is used or refreshed.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed sector details.</returns>
     public async Task<SectorDetails> GetSectorAsync(string key, string region, YFinanceCacheMode cacheMode, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -428,9 +608,18 @@ public sealed class YahooFinanceClient : IDisposable
         return result;
     }
 
+    /// <inheritdoc cref="GetIndustryAsync(string, string, YFinanceCacheMode, CancellationToken)"/>
     public async Task<IndustryDetails> GetIndustryAsync(string key, string region = "US", CancellationToken cancellationToken = default)
         => await GetIndustryAsync(key, region, YFinanceCacheMode.Default, cancellationToken).ConfigureAwait(false);
 
+    /// <summary>
+    /// Gets industry details for a Yahoo Finance industry key.
+    /// </summary>
+    /// <param name="key">Industry key such as <c>software-infrastructure</c>.</param>
+    /// <param name="region">Region code used by Yahoo Finance, such as <c>US</c>.</param>
+    /// <param name="cacheMode">Controls whether the domain cache is used or refreshed.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed industry details.</returns>
     public async Task<IndustryDetails> GetIndustryAsync(string key, string region, YFinanceCacheMode cacheMode, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -453,6 +642,12 @@ public sealed class YahooFinanceClient : IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Gets Yahoo Finance's earnings calendar.
+    /// </summary>
+    /// <param name="request">Optional calendar filters, paging, and date range settings.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed earnings calendar result.</returns>
     public async Task<CalendarResult<EarningsCalendarEntry>> GetEarningsCalendarAsync(EarningsCalendarRequest? request = null, CancellationToken cancellationToken = default)
     {
         request ??= new EarningsCalendarRequest();
@@ -488,6 +683,12 @@ public sealed class YahooFinanceClient : IDisposable
         return CalendarResponseParser.ParseEarnings(payload);
     }
 
+    /// <summary>
+    /// Gets Yahoo Finance's IPO calendar.
+    /// </summary>
+    /// <param name="request">Optional calendar filters, paging, and date range settings.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed IPO calendar result.</returns>
     public async Task<CalendarResult<IpoCalendarEntry>> GetIpoCalendarAsync(IpoCalendarRequest? request = null, CancellationToken cancellationToken = default)
     {
         request ??= new IpoCalendarRequest();
@@ -514,6 +715,12 @@ public sealed class YahooFinanceClient : IDisposable
         return CalendarResponseParser.ParseIpos(payload);
     }
 
+    /// <summary>
+    /// Gets Yahoo Finance's economic events calendar.
+    /// </summary>
+    /// <param name="request">Optional calendar filters, paging, and date range settings.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed economic events calendar result.</returns>
     public async Task<CalendarResult<EconomicEventCalendarEntry>> GetEconomicEventsCalendarAsync(EconomicEventCalendarRequest? request = null, CancellationToken cancellationToken = default)
     {
         request ??= new EconomicEventCalendarRequest();
@@ -536,6 +743,12 @@ public sealed class YahooFinanceClient : IDisposable
         return CalendarResponseParser.ParseEconomicEvents(payload);
     }
 
+    /// <summary>
+    /// Gets Yahoo Finance's stock split calendar.
+    /// </summary>
+    /// <param name="request">Optional calendar filters, paging, and date range settings.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed stock split calendar result.</returns>
     public async Task<CalendarResult<SplitCalendarEntry>> GetSplitsCalendarAsync(SplitsCalendarRequest? request = null, CancellationToken cancellationToken = default)
     {
         request ??= new SplitsCalendarRequest();
@@ -558,6 +771,14 @@ public sealed class YahooFinanceClient : IDisposable
         return CalendarResponseParser.ParseSplits(payload);
     }
 
+    /// <summary>
+    /// Gets historical or upcoming earnings dates for a symbol.
+    /// </summary>
+    /// <param name="symbol">Ticker symbol to query.</param>
+    /// <param name="limit">Maximum number of rows to return.</param>
+    /// <param name="offset">Result offset for paging.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed earnings dates result.</returns>
     public async Task<EarningsDatesResult> GetEarningsDatesAsync(string symbol, int limit = 12, int offset = 0, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -579,6 +800,12 @@ public sealed class YahooFinanceClient : IDisposable
         return EarningsDatesResponseParser.Parse(payload);
     }
 
+    /// <summary>
+    /// Gets company profiles for multiple symbols with bounded concurrency.
+    /// </summary>
+    /// <param name="request">Batch request describing symbols and concurrency.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The batch company profile result, including per-symbol failures.</returns>
     public async Task<BatchCompanyProfileResult> GetCompanyProfilesAsync(BatchCompanyProfileRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -601,6 +828,12 @@ public sealed class YahooFinanceClient : IDisposable
         return new BatchCompanyProfileResult(profiles, failures);
     }
 
+    /// <summary>
+    /// Gets ticker news for multiple symbols with bounded concurrency.
+    /// </summary>
+    /// <param name="request">Batch request describing symbols, count, tab, and concurrency.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The batch ticker news result, including per-symbol failures.</returns>
     public async Task<BatchTickerNewsResult> GetNewsAsync(BatchTickerNewsRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -623,6 +856,12 @@ public sealed class YahooFinanceClient : IDisposable
         return new BatchTickerNewsResult(newsBySymbol, failures);
     }
 
+    /// <summary>
+    /// Gets historical price data for a symbol.
+    /// </summary>
+    /// <param name="request">Price history request specifying symbol, date range, interval, and shaping options.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The parsed and post-processed price history result.</returns>
     public async Task<PriceHistoryResult> GetPriceHistoryAsync(PriceHistoryRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -640,6 +879,12 @@ public sealed class YahooFinanceClient : IDisposable
         return history;
     }
 
+    /// <summary>
+    /// Gets historical price data for multiple symbols with bounded concurrency.
+    /// </summary>
+    /// <param name="request">Batch price history request describing symbols, history settings, and concurrency.</param>
+    /// <param name="cancellationToken">Token used to cancel the request.</param>
+    /// <returns>The batch price history result, including per-symbol failures.</returns>
     public async Task<BatchPriceHistoryResult> GetPriceHistoriesAsync(BatchPriceHistoryRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -662,6 +907,9 @@ public sealed class YahooFinanceClient : IDisposable
         return new BatchPriceHistoryResult(histories, failures);
     }
 
+    /// <summary>
+    /// Disposes the client and its owned <see cref="HttpClient"/> instance when applicable.
+    /// </summary>
     public void Dispose()
     {
         if (_ownsHttpClient)

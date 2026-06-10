@@ -6,6 +6,11 @@ namespace YFinance.Net;
 
 internal static class YahooLiveMessageDecoder
 {
+    public static bool TryDecodeEnvelope(ReadOnlyMemory<byte> envelopeUtf8, out LivePriceUpdate? update)
+    {
+        return TryDecodeEnvelope(envelopeUtf8.Span, out update);
+    }
+
     public static bool TryDecodeEnvelope(ReadOnlySpan<byte> envelopeUtf8, out LivePriceUpdate? update)
     {
         update = null;
